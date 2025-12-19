@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>功能首页</title>
+    <style>
+        /* 保持原有样式不变 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 15px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 10px 0;
+        }
+        .header h1 {
+            font-size: 18px;
+            color: #333;
+            font-weight: 600;
+        }
+        .data-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .data-card .item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .data-card .item:last-child {
+            margin-bottom: 0;
+        }
+        .data-card .label {
+            font-size: 14px;
+            color: #666;
+        }
+        .data-card .value {
+            font-size: 15px;
+            color: #333;
+            font-weight: 500;
+        }
+        .data-card .release-btn {
+            padding: 4px 12px;
+            background: #007aff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .func-list {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+        .func-item {
+            background: #fff;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .func-item:active {
+            background: #f0f0f0;
+        }
+        .func-item span {
+            font-size: 15px;
+            color: #333;
+        }
+        .func-item .tag {
+            font-size: 12px;
+            color: #999;
+            margin-left: 8px;
+        }
+        .error-message {
+            color: #ff3b30;
+            font-size: 14px;
+            text-align: center;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- 页面头部 -->
+    <div class="header">
+        <h1>系统功能中心</h1>
+    </div>
+
+    <!-- 错误信息显示区 -->
+    <div class="error-message" id="errorMsg"></div>
+
+    <!-- 核心数据概览卡片 -->
+    <div class="data-card">
+        <div class="item">
+            <span class="label">tutk目前数量</span>
+            <span class="value" id="tutkCurrentCount">加载中...</span>
+        </div>
+        <div class="item">
+            <span class="label">tutk可以释放数量</span>
+            <div class="value">
+                <span id="tutkReleaseCount">加载中...</span> 
+                <button class="release-btn">点击释放</button>
+            </div>
+        </div>
+        <div class="item">
+            <span class="label">license-user</span>
+            <span class="value">14152</span>
+        </div>
+        <div class="item">
+            <span class="label">license-all</span>
+            <span class="value">20000</span>
+        </div>
+    </div>
+
+    <!-- 功能列表 -->
+    <div class="func-list">
+        <div class="func-item"><span>查询设备信息</span></div>
+        <div class="func-item"><span>通过tutkId查询设备信息</span></div>
+        <div class="func-item"><span>查询事件信息(初步排查有没有推送)</span></div>
+        <div class="func-item"><span>通过license查询设备信息</span></div>
+        <div class="func-item"><span>配额license <span class="tag">(未开发)</span></span></div>
+        <div class="func-item"><span>添加固件</span></div>
+        <div class="func-item"><span>查询用户内测</span></div>
+        <div class="func-item"><span>添加用户内测 <span class="tag">(待发布)</span></span></div>
+        <div class="func-item"><span>获取用户信息-激活账号-重置密码</span></div>
+        <div class="func-item"><span>重置账号密码为123456</span></div>
+        <div class="func-item"><span>激活账号</span></div>
+        <div class="func-item"><span>查看用户登录记录</span></div>
+        <div class="func-item"><span>查询商户数量</span></div>
+        <div class="func-item"><span>查看服务器情况</span></div>
+        <div class="func-item"><span>获取S3文件路径</span></div>
+        <div class="func-item"><span>获取设备上传S3日志文件路径</span></div>
+        <div class="func-item"><span>推送信息</span></div>
+    </div>
+
+    <!-- 引入配置文件 -->
+    <script src="config.js"></script>
+    <script>
+        // 获取DOM元素
+        const tutkCurrentCountEl = document.getElementById('tutkCurrentCount');
+        const tutkReleaseCountEl = document.getElementById('tutkReleaseCount');
+        const errorMsgEl = document.getElementById('errorMsg');
+
+        // 页面加载时获取tutk信息
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                // 获取本地存储的token
+                const token = localStorage.getItem('adminToken');
+                
+                // 检查token是否存在，不存在则跳回登录页
+                if (!token) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                // 发送请求获取tutk信息
+                const response = await fetch(`${config.apiBaseUrl}/tutk/get/tutkInfo`, {
+                    method: 'POST',
+                    headers: {
+                        'token': token  // 在请求头中携带token
+                    }
+                });
+
+                // 解析响应数据
+                const result = await response.json();
+
+                // 处理接口响应
+                if (result.code === 1) {
+                    // 解析数据格式："25501-tutk可以释放数量：81"
+                    const dataStr = result.data;
+                    const [currentCount, releasePart] = dataStr.split('-');
+                    const releaseCount = releasePart.split('：')[1];  // 注意这里是中文冒号
+
+                    // 更新页面显示
+                    tutkCurrentCountEl.textContent = currentCount;
+                    tutkReleaseCountEl.textContent = releaseCount;
+                } else {
+                    showError(result.message || '获取数据失败');
+                }
+            } catch (error) {
+                console.error('请求tutk信息失败:', error);
+                showError('网络错误，无法获取数据');
+            }
+        });
+
+        // 显示错误信息
+        function showError(message) {
+            errorMsgEl.textContent = message;
+            setTimeout(() => {
+                errorMsgEl.textContent = '';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
