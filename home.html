@@ -154,77 +154,7 @@
         const tutkReleaseCountEl = document.getElementById('tutkReleaseCount');
         const errorMsgEl = document.getElementById('errorMsg');
 
-        // 获取释放按钮元素并添加点击事件
-        document.querySelector('releaseBtn').addEventListener('click', async () => {
-            try {
-                // 获取本地存储的token
-                const token = localStorage.getItem('adminToken');
-                
-                // 检查token是否存在
-                if (!token) {
-                    window.location.href = 'login.html';
-                    return;
-                }
-        
-                // 构建请求参数
-                const formData = new URLSearchParams();
-                // 这里可以添加需要的表单参数，如果有的话
-                // formData.append('参数名', '参数值');
-        
-                // 发送POST请求
-                const response = await fetch(`${config.apiBaseUrl}/tutk/set/release`, {
-                    method: 'POST',
-                    headers: {
-                        'token': token,
-                        'Content-Type': 'application/x-www-form-urlencoded'
-                    },
-                    body: formData
-                });
-        
-                // 解析响应数据
-                const result = await response.json();
-        
-                // 处理接口响应
-                if (result.code === 1) {
-                    // 释放成功，显示释放的个数
-                    showError(`释放成功，共释放 ${result.data} 个`);
-                    
-                    // 可以在这里            // 重新获取tutk信息以更新页面数据
-                    // fetchTutkInfo();
-                } else {
-                    showError(result.message || '释放失败，请重试');
-                }
-            } catch (error) {
-                console.error('释放请求失败:', error);
-                showError('网络错误，释放失败');
-            }
-        });
-        
-        // 如果需要重新获取tutk信息的功能，可以添加这个函数
-        async function fetchTutkInfo() {
-            try {
-                const token = localStorage.getItem('adminToken');
-                const response = await fetch(`${config.apiBaseUrl}/tutk/get/tutkInfo`, {
-                    method: 'POST',
-                    headers: {
-                        'token': token
-                    }
-                });
-        
-                const result = await response.json();
-                if (result.code === 1) {
-                    const dataStr = result.data;
-                    const [currentCount, releasePart] = dataStr.split('-');
-                    const releaseCount = releasePart.split('：')[1];
-                    tutkCurrentCountEl.textContent = currentCount;
-                    tutkReleaseCountEl.textContent = releaseCount;
-                }
-            } catch (error) {
-                console.error('重新获取tutk信息失败:', error);
-            }
-        }
-
-        
+ 
 
         // 页面加载时获取tutk信息
         document.addEventListener('DOMContentLoaded', async () => {
