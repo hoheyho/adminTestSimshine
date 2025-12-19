@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>查询事件信息</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .nav-btn {
+            flex: 1;
+            padding: 10px;
+            background: #f0f0f0;
+            color: #333;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            text-align: center;
+        }
+        .nav-btn:hover {
+            background: #e0e0e0;
+        }
+        .query-container {
+            max-width: 400px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 30px 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .query-container h2 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #333;
+            font-size: 16px;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-size: 14px;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            outline: none;
+        }
+        .input-group input:focus {
+            border-color: #007aff;
+        }
+        .query-btn {
+            width: 100%;
+            padding: 12px;
+            background: #007aff;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-bottom: 15px;
+        }
+        .query-btn:active {
+            background: #0066cc;
+        }
+        .load-more-btn {
+            width: 100%;
+            padding: 12px;
+            background: #f0f0f0;
+            color: #333;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-bottom: 15px;
+            display: none;
+        }
+        .load-more-btn:active {
+            background: #e0e0e0;
+        }
+        .result-container {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 6px;
+            display: none;
+        }
+        .result-container pre {
+            white-space: pre-wrap;
+            word-break: break-all;
+            font-size: 14px;
+            color: #333;
+        }
+        .error-message {
+            color: #ff3b30;
+            font-size: 14px;
+            text-align: center;
+            margin-bottom: 15px;
+            min-height: 20px;
+        }
+    </style>
+</head>
+<body>
+<div class="query-container">
+    <!-- 返回按钮 -->
+    <div class="nav-buttons">
+        <button class="nav-btn" onclick="window.location.href='home.html'">返回首页</button>
+        <button class="nav-btn" onclick="window.location.href='login.html'">返回登录</button>
+    </div>
+
+    <h2></h2>
+
+
+    <!-- 查询表单 -->
+    <div class="input-group">
+        <label for="deviceId">查询事件信息(初步排查有没有推送)</label>
+        <input type="text" id="deviceId" placeholder="请输入设备ID">
+    </div>
+    <div class="input-group">
+        <input type="text" id="startTime" placeholder="开始时间格式: 2019-10-18 09:02:53">
+    </div>
+    <div class="input-group">
+
+        <input type="text" id="endTime" placeholder="结束时间格式: 2019-10-18 09:02:53">
+    </div>
+
+    <button class="query-btn" id="queryBtn">查询</button>
+    <button class="load-more-btn" id="loadMoreBtn">加载更多</button>
+
+    <div class="result-container" id="resultContainer">
+        <pre id="resultContent"></pre>
+    </div>
+</div>
+
+<script src="config.js"></script>
+<script>
+    // 获取DOM元素
+    const queryBtn = document.getElementById('queryBtn');
+    const loadMoreBtn = document.getElementById('loadMoreBtn');
+    const deviceIdInput = document.getElementById('deviceId');
+    const startTimeInput = document.getElementById('startTime');
+    const endTimeInput = document.getElementById('endTime');
+    const errorMsg = document.getElementById('errorMsg');
+    const resultContainer = document.getElementById('resultContainer');
+    const resultContent = document.getElementById('resultContent');
+
+    // 当前页码
+    let currentPage = 0;
+    // 存储查询参数用于加载更多
+    let queryParams = {};
+
+    // 查询按钮点击事件
+    queryBtn.addEventListener('click', async () => {
+        // 重置页码
+        currentPage = 0;
+        await performQuery(currentPage);
+    });
+
+    // 加载更多按钮点击事件
+    loadMoreBtn.addEventListener('click', async () => {
+        currentPage++;
+        await performQuery(currentPage);
+    });
+
+    // 执行查询
+    async function performQuery(page) {
+        const deviceId = deviceIdInput.value.trim();
+        const startTime = startTimeInput.value.trim();
+        const endTime = endTimeInput.value.trim();
+
+        // 验证输入 - 至少需要一个参数
+        if (!deviceId && !startTime && !endTime) {
+            showError('设备ID、开始时间、结束时间至少填写一个');
+            return;
+        }
+
+        try {
+            // 构建请求参数
+            const formData = new URLSearchParams();
+            if (deviceId) formData.append('deviceId', deviceId);
+            if (startTime) formData.append('startTime', startTime);
+            if (endTime) formData.append('endTime', endTime);
+            formData.append('page', page);
+
+            // 保存查询参数用于加载更多
+            queryParams = { deviceId, startTime, endTime };
+
+            // 获取token
+            const token = localStorage.getItem('adminToken');
+            if (!token) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // 发送POST请求到指定接口
+            const response = await fetch(`${config.apiBaseUrl}/event/getEventInfo`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'token': token
+                },
+                body: formData
+            });
+
+            // 解析响应
+            const result = await response.json();
+
+            // 显示结果（格式化JSON数据）
+            if (page === 0) {
+                // 第一次查询，直接显示结果
+                resultContent.textContent = JSON.stringify(result, null, 2);
+                resultContainer.style.display = 'block';
+            } else {
+                // 加载更多，追加结果
+                const existingContent = resultContent.textContent;
+                resultContent.textContent = existingContent + '\n\n' + JSON.stringify(result, null, 2);
+            }
+
+            // 根据是否有更多数据决定是否显示加载更多按钮
+            // 这里假设如果返回的数据不为空，则可能还有更多数据
+            if (result && Object.keys(result).length > 0) {
+                loadMoreBtn.style.display = 'block';
+            } else {
+                loadMoreBtn.style.display = 'none';
+            }
+
+            errorMsg.textContent = '';
+        } catch (error) {
+            console.error('查询请求失败:', error);
+            showError('网络错误，请检查连接');
+            if (page === 0) {
+                resultContainer.style.display = 'none';
+            }
+        }
+    }
+
+    // 显示错误信息
+    function showError(message) {
+        errorMsg.textContent = message;
+        setTimeout(() => {
+            errorMsg.textContent = '';
+        }, 3000);
+    }
+
+    // 支持回车键查询
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            queryBtn.click();
+        }
+    });
+</script>
+</body>
+</html>

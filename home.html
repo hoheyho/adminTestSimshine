@@ -94,10 +94,13 @@
     </style>
 </head>
 <body>
-    <!-- 页面头部 -->
-    <div class="header">
-        <h1>系统功能中心</h1>
-    </div>
+<!-- 添加返回登录按钮 -->
+<button onclick="window.location.href='login.html'" style="margin-bottom: 10px;">返回登录</button>
+
+<!-- 页面头部 -->
+<!--    <div class="header">-->
+<!--        <h1>系统功能中心</h1>-->
+<!--    </div>-->
 
     <!-- 错误信息显示区 -->
     <div class="error-message" id="errorMsg"></div>
@@ -117,7 +120,7 @@
         </div>
         <div class="item">
             <span class="label">license-user</span>
-            <span class="value">14152</span>
+            <span class="value" id="licenseUserCount">加载中...</span>
         </div>
         <div class="item">
             <span class="label">license-all</span>
@@ -127,23 +130,65 @@
 
     <!-- 功能列表 -->
     <div class="func-list">
-        <div class="func-item"><span>查询设备信息</span></div>
-        <div class="func-item"><span>通过tutkId查询设备信息</span></div>
-        <div class="func-item"><span>查询事件信息(初步排查有没有推送)</span></div>
-        <div class="func-item"><span>通过license查询设备信息</span></div>
-        <div class="func-item"><span>配额license <span class="tag">(未开发)</span></span></div>
-        <div class="func-item"><span>添加固件</span></div>
-        <div class="func-item"><span>查询用户内测</span></div>
-        <div class="func-item"><span>添加用户内测 <span class="tag">(待发布)</span></span></div>
-        <div class="func-item"><span>获取用户信息-激活账号-重置密码</span></div>
-        <div class="func-item"><span>重置账号密码为123456</span></div>
-        <div class="func-item"><span>激活账号</span></div>
-        <div class="func-item"><span>查看用户登录记录</span></div>
-        <div class="func-item"><span>查询商户数量</span></div>
+        <!-- 将原来的查询设备信息项 -->
+        <div class="func-item" onclick="window.location.href='device-info.html'">
+            <span>查询设备信息</span>
+        </div>
+        <!-- 在功能列表中找到"通过tutkId查询设备信息"这一项，修改为： -->
+        <div class="func-item" onclick="window.location.href='deviceInfo-by-tutk.html'">
+            <span>通过tutkId查询设备信息</span>
+        </div>
+        <!-- 在功能列表中找到"查询事件信息(初步排查有没有推送)"这一项，修改为： -->
+        <div class="func-item" onclick="window.location.href='event-query.html'">
+            <span>查询事件信息(初步排查有没有推送)</span>
+        </div>
+        <!-- 在功能列表中找到"通过license查询设备信息"这一项，修改为： -->
+        <div class="func-item" onclick="window.location.href='license-query.html'">
+            <span>通过license查询设备信息</span>
+        </div>
+
+        <!-- 将原来的配额license项 -->
+        <div class="func-item" onclick="window.location.href='license-allocation.html'">
+            <span>配额license-未测试过，目前够用</span>
+        </div>
         <div class="func-item"><span>查看服务器情况</span></div>
-        <div class="func-item"><span>获取S3文件路径</span></div>
+
+        <div class="func-item" style="background-color: #f0f0f0; cursor: default;">
+            <span style="color: #999;">查询商户数量-数据库无法外网访问需要密码</span>
+        </div>
+
+        <div class="func-item" onclick="window.location.href='s3-file-path.html'">
+            <span>获取S3文件路径</span>
+        </div>
+
         <div class="func-item"><span>获取设备上传S3日志文件路径</span></div>
         <div class="func-item"><span>推送信息</span></div>
+
+        <!-- 修改后 -->
+        <div class="func-group" style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 10px; background-color: #fafafa;">
+            <div class="group-note" style="color: #999; font-size: 14px; margin-bottom: 10px; text-align: center;">
+                见管理平台，地址微信里面找
+            </div>
+            <div class="func-item" style="background-color: #f9f9f9; cursor: default; margin-bottom: 8px;">
+                <span style="color: #999;">添加固件</span>
+            </div>
+            <div class="func-item" style="background-color: #f9f9f9; cursor: default; margin-bottom: 8px;">
+                <span style="color: #999;">查询用户内测</span>
+            </div>
+            <div class="func-item" style="background-color: #f9f9f9; cursor: default; margin-bottom: 0;">
+                <span style="color: #999;">添加用户内测</span>
+            </div>
+            <div class="func-item" style="background-color: #f9f9f9; cursor: default; margin-bottom: 0;">
+                <span style="color: #999;">获取用户信息-激活账号-重置密码</span>
+            </div>
+            <div class="func-item" style="background-color: #f9f9f9; cursor: default; margin-bottom: 0;">
+                <span style="color: #999;">查看用户登录记录</span>
+            </div>
+        </div>
+
+
+
+
     </div>
 
     <!-- 引入配置文件 -->
@@ -153,9 +198,6 @@
         const tutkCurrentCountEl = document.getElementById('tutkCurrentCount');
         const tutkReleaseCountEl = document.getElementById('tutkReleaseCount');
         const errorMsgEl = document.getElementById('errorMsg');
-
- 
-
         // 页面加载时获取tutk信息
         document.addEventListener('DOMContentLoaded', async () => {
             try {
@@ -196,7 +238,110 @@
                 console.error('请求tutk信息失败:', error);
                 showError('网络错误，无法获取数据');
             }
+            // 新增获取 license-user 数据
+            await fetchLicenseUserCount();
         });
+
+
+
+		  // 获取释放按钮元素并添加点击事件
+        document.getElementById('releaseBtn').addEventListener('click', async () => {
+            try {
+                // 获取本地存储的token
+                const token = localStorage.getItem('adminToken');
+                
+                // 检查token是否存在
+                if (!token) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+        
+                // 构建请求参数
+                const formData = new URLSearchParams();
+                // 这里可以添加需要的表单参数，如果有的话
+                // formData.append('参数名', '参数值');
+        
+                // 发送POST请求
+                const response = await fetch(`${config.apiBaseUrl}/tutk/set/release`, {
+                    method: 'POST',
+                    headers: {
+                        'token': token,
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: formData
+                });
+        
+                // 解析响应数据
+                const result = await response.json();
+        
+                // 处理接口响应
+                if (result.code === 1) {
+                    // 释放成功，显示释放的个数
+                    showError(`释放成功，共释放 ${result.data} 个`);
+                    // 可以在这里            // 重新获取tutk信息以更新页面数据
+                    fetchTutkInfo();
+                } else {
+                    showError(result.message || '释放失败，请重试');
+                }
+            } catch (error) {
+                console.error('释放请求失败:', error);
+                showError('网络错误，释放失败');
+            }
+        });
+        
+        // 如果需要重新获取tutk信息的功能，可以添加这个函数
+        async function fetchTutkInfo() {
+            try {
+                const token = localStorage.getItem('adminToken');
+                const response = await fetch(`${config.apiBaseUrl}/tutk/get/tutkInfo`, {
+                    method: 'POST',
+                    headers: {
+                        'token': token
+                    }
+                });
+        
+                const result = await response.json();
+                if (result.code === 1) {
+                    const dataStr = result.data;
+                    const [currentCount, releasePart] = dataStr.split('-');
+                    const releaseCount = releasePart.split('：')[1];
+                    tutkCurrentCountEl.textContent = currentCount;
+                    tutkReleaseCountEl.textContent = releaseCount;
+                }
+            } catch (error) {
+                console.error('重新获取tutk信息失败:', error);
+            }
+        }
+
+        // 获取 license-user 数量
+        async function fetchLicenseUserCount() {
+            try {
+                const token = localStorage.getItem('adminToken');
+                if (!token) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                const response = await fetch(`${config.apiBaseUrl}/agora/getLicense`, {
+                    method: 'POST',
+                    headers: {
+                        'token': token,
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    }
+                });
+
+                const result = await response.json();
+                if (result.code === 1) {
+                    document.getElementById('licenseUserCount').textContent = result.data;
+                } else {
+                    showError(result.message || '获取 license-user 数据失败');
+                }
+            } catch (error) {
+                console.error('请求 license-user 信息失败:', error);
+                showError('网络错误，无法获取 license-user 数据');
+            }
+        }
+
 
         // 显示错误信息
         function showError(message) {

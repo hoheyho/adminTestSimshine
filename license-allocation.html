@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>配额License分配</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .nav-btn {
+            flex: 1;
+            padding: 10px;
+            background: #f0f0f0;
+            color: #333;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            text-align: center;
+        }
+        .nav-btn:hover {
+            background: #e0e0e0;
+        }
+        .query-container {
+            max-width: 400px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 30px 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .query-container h2 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #333;
+            font-size: 16px;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            outline: none;
+        }
+        .input-group input:focus {
+            border-color: #007aff;
+        }
+        .query-btn {
+            width: 100%;
+            padding: 12px;
+            background: #007aff;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-bottom: 15px;
+        }
+        .query-btn:active {
+            background: #0066cc;
+        }
+        .result-container {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 6px;
+            display: none;
+        }
+        .result-container pre {
+            white-space: pre-wrap;
+            word-break: break-all;
+            font-size: 14px;
+            color: #333;
+        }
+        .error-message {
+            color: #ff3b30;
+            font-size: 14px;
+            text-align: center;
+            margin-bottom: 15px;
+            min-height: 20px;
+        }
+    </style>
+</head>
+<body>
+<div class="query-container">
+    <div class="nav-buttons">
+        <button class="nav-btn" onclick="window.location.href='home.html'">返回首页</button>
+        <button class="nav-btn" onclick="window.location.href='login.html'">返回登录</button>
+    </div>
+    <div class="error-message" id="errorMsg"></div>
+
+    <div class="input-group">
+        <label for="appId">配额License分配</label>
+        <input type="text" id="appId" placeholder="App ID" value="2d8b2b409cc14a0ea51af3800fa25ab0">
+    </div>
+
+    <div class="input-group">
+        <input type="text" id="pid" placeholder="PID" value="3FBD78B3B1CB48A0B5D56D0970A7C268">
+    </div>
+
+    <div class="input-group">
+        <input type="number" id="count" placeholder="配额数量">
+    </div>
+
+    <div class="input-group">
+        <input type="text" id="creator" placeholder="操作者姓名">
+    </div>
+
+    <button class="query-btn" id="allocateBtn">分配</button>
+
+    <div class="result-container" id="resultContainer">
+        <pre id="resultContent"></pre>
+    </div>
+</div>
+
+<script src="config.js"></script>
+<script>
+    // 获取DOM元素
+    const allocateBtn = document.getElementById('allocateBtn');
+    const appIdInput = document.getElementById('appId');
+    const pidInput = document.getElementById('pid');
+    const countInput = document.getElementById('count');
+    const creatorInput = document.getElementById('creator');
+    const errorMsg = document.getElementById('errorMsg');
+    const resultContainer = document.getElementById('resultContainer');
+    const resultContent = document.getElementById('resultContent');
+
+    // 分配按钮点击事件
+    allocateBtn.addEventListener('click', async () => {
+        const appId = appIdInput.value.trim();
+        const pid = pidInput.value.trim();
+        const count = countInput.value.trim();
+        const creator = creatorInput.value.trim();
+
+        // 验证输入
+        if (!appId) {
+            showError('请输入App ID');
+            return;
+        }
+
+        if (!pid) {
+            showError('请输入PID');
+            return;
+        }
+
+        if (!count) {
+            showError('请输入配额数量');
+            return;
+        }
+
+        if (!creator) {
+            showError('请输入操作者姓名');
+            return;
+        }
+
+        try {
+            // 构建请求参数
+            const formData = new URLSearchParams();
+            formData.append('appId', appId);
+            formData.append('pid', pid);
+            formData.append('count', count);
+            formData.append('creator', creator);
+
+            // 获取token
+            const token = localStorage.getItem('adminToken');
+            if (!token) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // 发送POST请求到指定接口
+            const response = await fetch(`${config.apiBaseUrl}/agora/allocate`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'token': token
+                },
+                body: formData
+            });
+
+            // 解析响应
+            const result = await response.json();
+
+            // 显示结果（格式化JSON数据）
+            resultContent.textContent = JSON.stringify(result, null, 2);
+            resultContainer.style.display = 'block';
+            errorMsg.textContent = '';
+        } catch (error) {
+            console.error('分配请求失败:', error);
+            showError('网络错误，请检查连接');
+            resultContainer.style.display = 'none';
+        }
+    });
+
+    // 显示错误信息
+    function showError(message) {
+        errorMsg.textContent = message;
+        setTimeout(() => {
+            errorMsg.textContent = '';
+        }, 3000);
+    }
+
+    // 支持回车键分配
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            allocateBtn.click();
+        }
+    });
+</script>
+</body>
+</html>
